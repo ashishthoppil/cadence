@@ -114,7 +114,7 @@ export function PostDetail() {
             )}
             {formatDate(post.post_date, { weekday: "long", day: "numeric", month: "long" })}
             <span>·</span>
-            {post.format === "carousel" ? `${post.slides.length || "…"} slides` : "Single image"}
+            {post.format === "carousel" ? `${post.slides?.length || "…"} slides` : "Single image"}
           </div>
           <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-tight md:text-3xl">
             {post.title ?? "Generating…"}

@@ -50,20 +50,24 @@ export function usePost(id: string | undefined) {
   useEffect(() => {
     if (!id) return;
     let active = true;
-    supabase()
-      .from("posts")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!active) return;
-        setPost(data as Post | null);
-        setLoading(false);
-      });
+    const load = () =>
+      supabase()
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!active) return;
+          setPost(data as Post | null);
+          setLoading(false);
+        });
+    load();
+    // Realtime UPDATE payloads can omit large unchanged columns (slides, captions), so treat
+    // them only as a signal and re-read the full row.
     const channel = supabase()
       .channel(`post-${id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts", filter: `id=eq.${id}` }, (p) =>
-        setPost(p.new as Post))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts", filter: `id=eq.${id}` }, () =>
+        load())
       .subscribe();
     return () => {
       active = false;
