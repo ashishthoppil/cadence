@@ -1,0 +1,15 @@
+project_id = "cadence"
+
+# Every function authenticates callers itself: user JWTs (dashboard), the one-time review token
+# (email links), or the x-cadence-secret header (pg_cron + function-to-function).
+[functions.scheduler]
+verify_jwt = false
+
+[functions.generate]
+verify_jwt = false
+
+[functions.render-slide]
+verify_jwt = false
+
+[functions.review]
+verify_jwt = false
