@@ -1,15 +1,26 @@
 "use client";
 
-import { Images, Sparkles } from "lucide-react";
+import { Film, Images, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/post-bits";
 import { brandFromWorkspace, SlidePreview } from "@/components/slide-preview";
 import { postImages } from "@/lib/posts";
+import { mediaUrl } from "@/lib/supabase/client";
 import type { Post, Workspace } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 export function PostThumb({ post, workspace, className }: { post: Post; workspace: Workspace; className?: string }) {
   const images = postImages(post);
+  if (post.video_path) {
+    return (
+      <div className={cn("relative aspect-[4/5] w-full bg-black", className)}>
+        <video src={`${mediaUrl(post.video_path)}#t=0.5`} muted playsInline preload="metadata" className="size-full object-cover" />
+        <span className="absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">
+          <Film className="size-3" /> Video
+        </span>
+      </div>
+    );
+  }
   if (images[0]) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={images[0]} alt={post.title ?? ""} className={cn("aspect-[4/5] w-full object-cover", className)} />;
@@ -25,11 +36,11 @@ export function PostThumb({ post, workspace, className }: { post: Post; workspac
     );
   }
   return (
-    <div className={cn("grid aspect-[4/5] w-full place-items-center bg-white/[0.02]", className)}>
+    <div className={cn("grid aspect-[4/5] w-full place-items-center bg-tint/[0.02]", className)}>
       {post.status === "generating" ? (
         <div className="flex flex-col items-center gap-2 text-xs text-ink-mute">
           <Sparkles className="size-5 animate-pulse text-brand-soft" />
-          Writing…
+          {post.format === "video" ? "Making the video…" : "Writing…"}
         </div>
       ) : (
         <Images className="size-6 text-ink-mute" />

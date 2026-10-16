@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { invoke, mediaUrl, supabase } from "./supabase/client";
-import type { Post, ReviewView } from "./types";
+import type { Post, PostFormat, ReviewView } from "./types";
 
 /** Posts for the signed-in workspace, kept live with Supabase Realtime. */
 export function usePosts(workspaceId: string | undefined, limit = 60) {
@@ -101,8 +101,8 @@ export function reviewPost(postId: string, action: ReviewAction, extra: Record<s
   return invoke<ReviewView>("review", { post_id: postId, action, ...extra });
 }
 
-export function generateNow(feedback?: string) {
-  return invoke<{ post_id: string }>("generate", { feedback });
+export function generateNow(format?: PostFormat) {
+  return invoke<{ post_id: string }>("generate", { format });
 }
 
 function slug(text: string) {
@@ -110,12 +110,13 @@ function slug(text: string) {
 }
 
 /** Forced-download links (same file names as the email attachments). */
-export function postDownloads(post: Pick<Post, "image_paths" | "pdf_path" | "post_date">, brandName: string) {
+export function postDownloads(post: Pick<Post, "image_paths" | "pdf_path" | "video_path" | "post_date">, brandName: string) {
   const base = `${slug(brandName)}-${post.post_date}`;
   const link = (path: string, name: string) => ({ name, url: `${mediaUrl(path)}?download=${encodeURIComponent(name)}` });
   const many = post.image_paths.length > 1;
   return {
     slides: post.image_paths.map((p, i) => link(p, many ? `${base}-slide-${String(i + 1).padStart(2, "0")}.jpg` : `${base}.jpg`)),
     pdf: post.pdf_path ? link(post.pdf_path, `${base}-linkedin-carousel.pdf`) : null,
+    video: post.video_path ? link(post.video_path, `${base}-video.mp4`) : null,
   };
 }

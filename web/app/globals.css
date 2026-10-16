@@ -1,21 +1,28 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Semantic colours point at runtime variables so light/dark can switch without rebuilding. */
+@theme inline {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --color-canvas: #07070b;
-  --color-panel: #0d0d13;
-  --color-raised: #13131b;
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-strong: rgb(255 255 255 / 0.14);
-  --color-ink: #f2f1f7;
-  --color-ink-soft: #b4b2c4;
-  --color-ink-mute: #7d7b90;
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mute: var(--ink-mute);
+  /* Base for translucent overlays: white on dark, near-black on light. */
+  --color-tint: var(--tint);
   --color-brand: #8b5cf6;
-  --color-brand-soft: #a78bfa;
+  --color-brand-soft: var(--brand-soft);
   --color-brand-deep: #6d28d9;
+}
 
+@theme {
   --animate-float: float 6s ease-in-out infinite;
   --animate-shimmer: shimmer 2.2s linear infinite;
   --animate-fade-up: fade-up 0.7s cubic-bezier(0.21, 0.6, 0.35, 1) both;
@@ -30,7 +37,6 @@
       transform: none;
     }
   }
-
   @keyframes float {
     0%,
     100% {
@@ -50,14 +56,45 @@
   }
 }
 
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
+  --canvas: #07070b;
+  --panel: #0d0d13;
+  --raised: #13131b;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.15);
+  --ink: #f2f1f7;
+  --ink-soft: #b4b2c4;
+  --ink-mute: #7d7b90;
+  --tint: #ffffff;
+  --brand-soft: #a78bfa;
+  --gradient-text: linear-gradient(100deg, #ffffff 10%, #c4b5fd 45%, #93c5fd 90%);
+  --shadow-glow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 20px 60px -20px rgb(139 92 246 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f7f7fa;
+  --panel: #ffffff;
+  --raised: #ffffff;
+  --line: rgb(17 16 30 / 0.09);
+  --line-strong: rgb(17 16 30 / 0.17);
+  --ink: #15131c;
+  --ink-soft: #46434f;
+  --ink-mute: #75727f;
+  --tint: #11101e;
+  --brand-soft: #6d28d9;
+  --gradient-text: linear-gradient(100deg, #15131c 10%, #6d28d9 50%, #2563eb 92%);
+  --shadow-glow: 0 0 0 1px rgb(17 16 30 / 0.06), 0 24px 60px -24px rgb(109 40 217 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
 
 html,
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--canvas);
+  color: var(--ink);
 }
 
 body {
@@ -68,32 +105,33 @@ body {
 }
 
 ::selection {
-  background: rgb(139 92 246 / 0.4);
-  color: white;
+  background: rgb(139 92 246 / 0.35);
 }
 
 /* Soft dotted backdrop used behind hero sections and auth screens */
 .bg-dots {
-  background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in oklab, var(--tint) 8%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
 .text-gradient {
-  background: linear-gradient(100deg, #ffffff 10%, #c4b5fd 45%, #93c5fd 90%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .glow-ring {
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.06),
-    0 20px 60px -20px rgb(139 92 246 / 0.45),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  box-shadow: var(--shadow-glow);
 }
 
 .skeleton {
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.09), rgb(255 255 255 / 0.04));
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tint) 4%, transparent),
+    color-mix(in oklab, var(--tint) 9%, transparent),
+    color-mix(in oklab, var(--tint) 4%, transparent)
+  );
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }
@@ -105,6 +143,6 @@ body {
   display: none;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator {
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.6);
 }

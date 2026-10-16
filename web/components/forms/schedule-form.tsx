@@ -3,6 +3,7 @@
 import { CalendarClock } from "lucide-react";
 import { useMemo } from "react";
 import { Field, Input, Select, Switch } from "@/components/ui";
+import { PLATFORMS } from "@/lib/presets";
 import type { CalendarSlot } from "@/lib/types";
 import { browserTimezone, formatClock, minutesOf, WEEKDAYS, zonedNow } from "@/lib/utils";
 import type { Draft } from "./brand-forms";
@@ -51,6 +52,8 @@ export function ScheduleForm({
   const timezone = value.timezone || browserTimezone();
   const at = (value.generate_at ?? "17:00").slice(0, 5);
   const next = nextRun(timezone, at, slots);
+  const names = PLATFORMS.filter((p) => value.platforms?.includes(p.id)).map((p) => p.label);
+  const platformList = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "each platform";
 
   return (
     <div className="space-y-6">
@@ -58,7 +61,7 @@ export function ScheduleForm({
         <Field
           label="Send each day's post to"
           className="sm:col-span-2"
-          hint="The slides arrive attached, with ready-to-paste captions for LinkedIn and Instagram."
+          hint={`Images or video arrive attached, with ready-to-paste captions for ${platformList}.`}
         >
           {(id) => (
             <Input
@@ -95,7 +98,7 @@ export function ScheduleForm({
         </Field>
       </div>
 
-      <div className="flex items-start gap-3 rounded-2xl border border-line bg-white/[0.02] p-4">
+      <div className="flex items-start gap-3 rounded-2xl border border-line bg-tint/[0.02] p-4">
         <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/15">
           <CalendarClock className="size-4 text-brand-soft" />
         </div>

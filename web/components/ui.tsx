@@ -11,10 +11,11 @@ type Size = "sm" | "md" | "lg";
 const variants: Record<Variant, string> = {
   primary:
     "bg-brand text-white shadow-[0_8px_30px_-8px_rgb(139_92_246/0.7),inset_0_1px_0_rgb(255_255_255/0.2)] hover:bg-[#7c4dff]",
-  secondary: "bg-white/[0.06] text-ink border border-line hover:bg-white/[0.1] hover:border-line-strong",
-  ghost: "text-ink-soft hover:text-ink hover:bg-white/[0.06]",
-  danger: "bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20",
-  white: "bg-white text-black hover:bg-white/90 shadow-[0_8px_30px_-10px_rgb(255_255_255/0.5)]",
+  secondary: "bg-tint/[0.06] text-ink border border-line hover:bg-tint/[0.1] hover:border-line-strong",
+  ghost: "text-ink-soft hover:text-ink hover:bg-tint/[0.06]",
+  danger: "bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20 hover:bg-rose-500/20",
+  // High-contrast button: white on dark theme, near-black on light theme.
+  white: "bg-ink text-canvas hover:opacity-90 shadow-[0_8px_30px_-12px_color-mix(in_oklab,var(--ink)_45%,transparent)]",
 };
 const sizes: Record<Size, string> = {
   sm: "h-8 px-3 text-[13px] gap-1.5 rounded-lg",
@@ -58,7 +59,7 @@ export function ButtonLink({
 }
 
 const field =
-  "w-full rounded-xl border border-line bg-white/[0.03] px-3.5 text-sm text-ink placeholder:text-ink-mute/70 transition focus:border-brand/60 focus:bg-white/[0.05] focus:outline-none focus:ring-4 focus:ring-brand/15";
+  "w-full rounded-xl border border-line bg-tint/[0.03] px-3.5 text-sm text-ink placeholder:text-ink-mute/70 transition focus:border-brand/60 focus:bg-tint/[0.05] focus:outline-none focus:ring-4 focus:ring-brand/15";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(field, "h-10", className)} {...props} />;
@@ -120,7 +121,7 @@ export function Badge({
   ...props
 }: ComponentProps<"span"> & { tone?: "neutral" | "brand" | "green" | "amber" | "red" | "blue" }) {
   const tones = {
-    neutral: "bg-white/[0.06] text-ink-soft border-line",
+    neutral: "bg-tint/[0.06] text-ink-soft border-line",
     brand: "bg-brand/15 text-brand-soft border-brand/25",
     green: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
     amber: "bg-amber-500/10 text-amber-300 border-amber-500/20",
@@ -157,7 +158,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition",
-        checked ? "border-brand/50 bg-brand" : "border-line bg-white/[0.08]",
+        checked ? "border-brand/50 bg-brand" : "border-line bg-tint/[0.08]",
       )}
     >
       <span
@@ -182,7 +183,7 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("inline-flex rounded-xl border border-line bg-white/[0.03] p-1", className)}>
+    <div className={cn("inline-flex rounded-xl border border-line bg-tint/[0.03] p-1", className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -190,7 +191,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition",
-            value === o.value ? "bg-white/[0.1] text-ink shadow-sm" : "text-ink-mute hover:text-ink-soft",
+            value === o.value ? "bg-tint/[0.1] text-ink shadow-sm" : "text-ink-mute hover:text-ink-soft",
           )}
         >
           {o.label}
@@ -221,7 +222,7 @@ export function TagInput({
   return (
     <div className={cn(field, "flex min-h-10 flex-wrap items-center gap-1.5 py-1.5")}>
       {value.map((tag) => (
-        <span key={tag} className="inline-flex items-center gap-1 rounded-lg bg-white/[0.07] px-2 py-0.5 text-[13px]">
+        <span key={tag} className="inline-flex items-center gap-1 rounded-lg bg-tint/[0.07] px-2 py-0.5 text-[13px]">
           <span className="text-ink-mute">{prefix}</span>
           {tag}
           <button

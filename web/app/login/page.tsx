@@ -14,7 +14,7 @@ export default function LoginPage() {
         <div className="mb-8 flex justify-center">
           <Logo />
         </div>
-        <div className="glow-ring rounded-3xl border border-white/10 bg-panel/90 p-7 backdrop-blur">
+        <div className="glow-ring rounded-3xl border border-tint/10 bg-panel/90 p-7 backdrop-blur">
           <h1 className="text-center text-xl font-semibold tracking-tight">Welcome to Cadence</h1>
           <p className="mt-1.5 mb-6 text-center text-sm text-ink-mute">Your daily posts, written, designed and ready to go.</p>
           <Suspense fallback={<div className="skeleton h-64 rounded-xl" />}>

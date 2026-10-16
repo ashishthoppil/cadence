@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CalendarClock, CalendarDays, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, CalendarClock, CalendarDays, CheckCircle2, Gift, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -9,8 +9,9 @@ import { nextRun } from "@/components/forms/schedule-form";
 import { StatusBadge } from "@/components/post-bits";
 import { PostCard, PostThumb } from "@/components/post-card";
 import { useWorkspace } from "@/components/workspace-provider";
-import { Button, ButtonLink, Card } from "@/components/ui";
-import { generateNow, usePosts } from "@/lib/posts";
+import { ButtonLink, Card } from "@/components/ui";
+import { GenerateMenu } from "@/components/generate-menu";
+import { usePosts } from "@/lib/posts";
 import type { Post } from "@/lib/types";
 import { cn, formatClock, formatDate, WEEKDAYS, zonedNow } from "@/lib/utils";
 
@@ -32,9 +33,8 @@ function addDays(date: string, days: number) {
 export function Overview() {
   const router = useRouter();
   const params = useSearchParams();
-  const { workspace, slots } = useWorkspace();
+  const { workspace, slots, plan, freePostsLeft } = useWorkspace();
   const { posts, loading } = usePosts(workspace?.id);
-  const [generating, setGenerating] = useState(false);
   const now = useNow();
 
   useEffect(() => {
@@ -62,18 +62,6 @@ export function Overview() {
   const readyThisWeek = posts.filter((p) => p.status === "ready" && p.post_date >= monday).length;
   const plannedPerWeek = slots.filter((s) => s.format !== "none").length;
 
-  async function generate() {
-    setGenerating(true);
-    try {
-      const { post_id } = await generateNow();
-      toast.success("Generating a fresh post — it'll land in your inbox in about a minute.");
-      router.push(`/dashboard/posts/${post_id}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not start generation");
-      setGenerating(false);
-    }
-  }
-
   const countdown = upcoming && !workspace!.paused
     ? (() => {
       const mins = upcoming.minutesUntil;
@@ -92,10 +80,24 @@ export function Overview() {
           </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{workspace!.brand_name} autopilot</h1>
         </div>
-        <Button onClick={generate} loading={generating}>
-          <Wand2 className="size-4" /> Generate a post now
-        </Button>
+        <GenerateMenu />
       </div>
+
+      {plan === "free" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/25 bg-brand/[0.07] px-5 py-4">
+          <div className="flex items-center gap-3 text-sm">
+            <Gift className="size-4 shrink-0 text-brand-soft" />
+            <span className="text-ink-soft">
+              {freePostsLeft > 0
+                ? `You're on the free trial: ${freePostsLeft} of 3 free posts left. Pick a plan to keep posts coming every day.`
+                : "Your free posts are used up. Pick a plan and your daily posts start again."}
+            </span>
+          </div>
+          <ButtonLink href="/dashboard/billing" size="sm">
+            See plans
+          </ButtonLink>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         {/* Today */}
@@ -106,7 +108,7 @@ export function Overview() {
               <>
                 <Link
                   href={`/dashboard/posts/${todayPost.id}`}
-                  className="w-full shrink-0 overflow-hidden rounded-xl border border-white/10 sm:w-44"
+                  className="w-full shrink-0 overflow-hidden rounded-xl border border-tint/10 sm:w-44"
                 >
                   <PostThumb post={todayPost} workspace={workspace!} />
                 </Link>
@@ -117,7 +119,7 @@ export function Overview() {
                   </div>
                   <h2 className="mt-3 text-xl leading-snug font-semibold">{todayPost.title ?? "Writing today's post…"}</h2>
                   <p className="mt-1.5 text-sm text-ink-mute">
-                    {todayPost.theme} · {todayPost.format === "carousel" ? "Carousel" : "Single image"}
+                    {todayPost.theme} · {todayPost.format === "carousel" ? "Carousel" : todayPost.format === "video" ? "Short video" : "Single image"}
                   </p>
                   <div className="mt-auto flex flex-wrap gap-2 pt-5">
                     <ButtonLink href={`/dashboard/posts/${todayPost.id}`} size="sm">
@@ -136,7 +138,7 @@ export function Overview() {
                   <>
                     <p className="mt-3 text-3xl font-semibold tracking-tight">{countdown}</p>
                     <p className="mt-1 text-sm text-ink-mute">{upcoming.label}</p>
-                    <div className="mt-5 rounded-xl border border-line bg-white/[0.02] p-4">
+                    <div className="mt-5 rounded-xl border border-line bg-tint/[0.02] p-4">
                       <p className="text-sm font-medium">{upcoming.slot.theme || "Untitled pillar"}</p>
                       <p className="mt-0.5 text-sm text-ink-mute">{upcoming.slot.brief || "No brief"}</p>
                     </div>
@@ -216,7 +218,7 @@ export function Overview() {
                     <StatusBadge status={post.status} className="text-[10px]" />
                   ) : (
                     <span className="text-[11px] text-ink-mute">
-                      {rest ? "" : date < today.date ? "Not generated" : slot?.format === "image" ? "Image" : "Carousel"}
+                      {rest ? "" : date < today.date ? "Not generated" : slot?.format === "image" ? "Image" : slot?.format === "video" ? "Video" : "Carousel"}
                     </span>
                   )}
                 </div>
@@ -256,9 +258,7 @@ export function Overview() {
             <p className="mt-1 max-w-sm text-sm text-ink-mute">
               Your first post will be generated {upcoming ? upcoming.label.toLowerCase() : "soon"}. Can&apos;t wait?
             </p>
-            <Button className="mt-5" onClick={generate} loading={generating}>
-              <Wand2 className="size-4" /> Generate one now
-            </Button>
+            <GenerateMenu className="mt-5" label="Generate one now" />
           </Card>
         )}
       </section>

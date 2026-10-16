@@ -4,7 +4,7 @@ import { createElement, useEffect, useRef, useState } from "react";
 import {
   buildSlide,
   type H,
-  isDarkTheme,
+  logoOnDark,
   SLIDE_HEIGHT,
   SLIDE_WIDTH,
   type Slide,
@@ -13,18 +13,28 @@ import {
 import type { Workspace } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+// Font families used by the templates → the CSS variables next/font defines in the root layout.
 const FONT_VARS: Record<string, string> = {
   Inter: "var(--font-inter), Inter, sans-serif",
-  "Plus Jakarta Sans": "var(--font-jakarta), 'Plus Jakarta Sans', sans-serif",
-  "DM Serif Display": "var(--font-dm-serif), 'DM Serif Display', serif",
+  "Plus Jakarta Sans": "var(--font-jakarta), sans-serif",
+  "DM Serif Display": "var(--font-dm-serif), serif",
+  "Space Grotesk": "var(--font-space-grotesk), sans-serif",
+  "Space Mono": "var(--font-space-mono), monospace",
+  Sora: "var(--font-sora), sans-serif",
+  Outfit: "var(--font-outfit), sans-serif",
+  "Playfair Display": "var(--font-playfair), serif",
+  Fraunces: "var(--font-fraunces), serif",
+  "Archivo Black": "var(--font-archivo-black), sans-serif",
+  "Bricolage Grotesque": "var(--font-bricolage), sans-serif",
+  Manrope: "var(--font-manrope), sans-serif",
 };
 
 const h: H = (type, props, ...children) => createElement(type, props, ...(children as React.ReactNode[]));
 
 export function brandFromWorkspace(w: Partial<Workspace>): SlideBrand {
-  const theme = w.slide_theme ?? "midnight";
+  const template = w.template ?? "midnight";
   const primary = w.primary_color || "#6D28D9";
-  const dark = isDarkTheme({ theme, primary });
+  const dark = logoOnDark({ template, primary, accent: w.accent_color ?? null });
   const normal = w.logo_url ? { url: w.logo_url, aspect: w.logo_aspect || 1 } : null;
   const inverse = w.logo_inverse_url ? { url: w.logo_inverse_url, aspect: w.logo_inverse_aspect || 1 } : null;
   return {
@@ -32,8 +42,7 @@ export function brandFromWorkspace(w: Partial<Workspace>): SlideBrand {
     handle: w.handle ?? null,
     primary,
     accent: w.accent_color ?? null,
-    theme,
-    font: w.slide_font ?? "inter",
+    template,
     logo: dark ? inverse ?? normal : normal,
     cta: w.cta ?? null,
   };

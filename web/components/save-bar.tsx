@@ -24,7 +24,7 @@ export function SaveBar({
           exit={{ opacity: 0, y: 20 }}
           className="fixed inset-x-0 bottom-5 z-40 flex justify-center px-4"
         >
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-raised/95 py-2 pr-2 pl-5 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center gap-3 rounded-2xl border border-tint/10 bg-raised/95 py-2 pr-2 pl-5 shadow-2xl backdrop-blur-xl">
             <span className="text-sm text-ink-soft">You have unsaved changes</span>
             <Button variant="ghost" size="sm" onClick={onReset} disabled={saving}>
               Discard

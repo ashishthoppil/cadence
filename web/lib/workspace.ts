@@ -2,7 +2,7 @@ import type { Workspace } from "./types";
 
 const EDITABLE: (keyof Workspace)[] = [
   "brand_name", "website", "description", "products", "audience", "tone", "cta", "handle", "language", "avoid",
-  "linkedin_hashtags", "instagram_hashtags", "primary_color", "accent_color", "slide_theme", "slide_font",
+  "business_type", "platforms", "visual_source", "brand_hashtags", "primary_color", "accent_color", "template",
   "logo_url", "logo_aspect", "logo_inverse_url", "logo_inverse_aspect", "carousel_length",
   "approval_email", "timezone", "generate_at", "paused", "ai_model",
 ];

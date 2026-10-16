@@ -1,7 +1,8 @@
 project_id = "cadence"
 
-# Every function authenticates callers itself: user JWTs (dashboard), the one-time review token
-# (email links), or the x-cadence-secret header (pg_cron + function-to-function).
+# Every function authenticates callers itself: user JWTs (dashboard), the one-time post-page
+# token (email links), the x-cadence-secret header (pg_cron + function-to-function), or the
+# Dodo Payments webhook signature.
 [functions.scheduler]
 verify_jwt = false
 
@@ -12,4 +13,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.review]
+verify_jwt = false
+
+[functions.video-poller]
+verify_jwt = false
+
+[functions.billing]
+verify_jwt = false
+
+[functions.dodo-webhook]
+verify_jwt = false
+
+[functions.media]
 verify_jwt = false

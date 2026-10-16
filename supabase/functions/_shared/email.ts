@@ -1,5 +1,5 @@
 import { env } from "./env.ts";
-import { MEDIA_BUCKET, type Post, publicUrl, type Workspace } from "./db.ts";
+import { MEDIA_BUCKET, type Platform, type Post, publicUrl, type Workspace } from "./db.ts";
 import { prettyDate } from "./time.ts";
 
 /** Resend fetches attachments from `path` itself, so large files never pass through the function. */
@@ -18,6 +18,22 @@ export async function sendEmail(to: string, subject: string, html: string, text:
   return await res.json();
 }
 
+export const PLATFORM_NAMES: Record<Platform, string> = {
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  x: "X",
+  tiktok: "TikTok",
+};
+
+const PLATFORM_DOTS: Record<Platform, string> = {
+  linkedin: "#0A66C2",
+  instagram: "#E1306C",
+  facebook: "#1877F2",
+  x: "#111111",
+  tiktok: "#25F4EE",
+};
+
 function esc(text: string | null | undefined): string {
   return (text ?? "")
     .replace(/&/g, "&amp;")
@@ -34,12 +50,13 @@ function slug(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "post";
 }
 
-/** File names for a post's downloads, e.g. syncv-2026-10-08-slide-01.jpg */
+/** File names for a post's downloads, e.g. northwind-2026-10-08-slide-01.jpg */
 export function downloadNames(post: Post, w: Workspace) {
   const base = `${slug(w.brand_name)}-${post.post_date}`;
   return {
     slide: (i: number) => (post.image_paths.length > 1 ? `${base}-slide-${String(i + 1).padStart(2, "0")}.jpg` : `${base}.jpg`),
     pdf: `${base}-linkedin-carousel.pdf`,
+    video: `${base}-video.mp4`,
   };
 }
 
@@ -73,15 +90,15 @@ function button(href: string, label: string, bg: string, color: string, border =
   return `<a href="${href}" style="display:inline-block;padding:13px 22px;border-radius:12px;background:${bg};color:${color};border:1px solid ${border};font-size:15px;font-weight:700;text-decoration:none;margin:4px 6px 4px 0;">${label}</a>`;
 }
 
-function captionCard(platform: string, dot: string, caption: string | null, hashtags: string[]) {
+function captionCard(platform: Platform, caption: string, hashtags: string[]) {
   return `<tr><td style="padding:0 24px 16px 24px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ECEAF2;border-radius:14px;">
     <tr><td style="padding:16px 18px 6px 18px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5E5A68;">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:8px;background:${dot};margin-right:8px;vertical-align:1px;"></span>${platform} caption
+      <span style="display:inline-block;width:8px;height:8px;border-radius:8px;background:${PLATFORM_DOTS[platform]};margin-right:8px;vertical-align:1px;"></span>${PLATFORM_NAMES[platform]} caption
     </td></tr>
-    <tr><td style="padding:6px 18px 16px 18px;font-size:14px;line-height:22px;color:#16141C;">${paragraphs(caption)}<br><br><span style="color:#5B3FD0;">${
-    esc(hashtags.map((t) => `#${t}`).join(" "))
-  }</span></td></tr>
+    <tr><td style="padding:6px 18px 16px 18px;font-size:14px;line-height:22px;color:#16141C;">${paragraphs(caption)}${
+    hashtags.length ? `<br><br><span style="color:#5B3FD0;">${esc(hashtags.map((t) => `#${t}`).join(" "))}</span>` : ""
+  }</td></tr>
   </table>
 </td></tr>`;
 }
@@ -106,18 +123,41 @@ function slideGrid(post: Post) {
   }</table></td></tr>`;
 }
 
+function videoBlock(post: Post, brandColor: string, videoUrl: string) {
+  return `<tr><td style="padding:0 24px 20px 24px;">
+  <a href="${videoUrl}" style="display:block;text-decoration:none;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111018;border-radius:16px;">
+    <tr><td align="center" style="padding:56px 24px 18px 24px;">
+      <span style="display:inline-block;width:64px;height:64px;line-height:64px;border-radius:64px;background:${brandColor};color:#FFFFFF;font-size:26px;text-align:center;">&#9654;</span>
+    </td></tr>
+    <tr><td align="center" style="padding:0 24px 44px 24px;font-size:15px;font-weight:700;color:#FFFFFF;">Watch the video${
+    post.alt_text ? `<div style="font-size:13px;font-weight:400;color:#B9B6C6;margin-top:8px;line-height:20px;">${esc(post.alt_text.slice(0, 160))}</div>` : ""
+  }</td></tr>
+  </table></a>
+</td></tr>`;
+}
+
 export function postEmail(post: Post, workspace: Workspace, token: string) {
   const page = `${env.siteUrl}/review/${token}`;
   const brandColor = workspace.primary_color || "#6D28D9";
-  const carousel = post.image_paths.length > 1;
   const names = downloadNames(post, workspace);
+  const isVideo = post.format === "video" && !!post.video_path;
+  const carousel = !isVideo && post.image_paths.length > 1;
   const pdfUrl = post.pdf_path ? publicUrl(MEDIA_BUCKET, post.pdf_path) : null;
-  const kind = carousel ? `${post.image_paths.length}-slide carousel` : "Single image post";
+  const videoUrl = post.video_path ? publicUrl(MEDIA_BUCKET, post.video_path) : null;
+  const kind = isVideo ? "Short video" : carousel ? `${post.image_paths.length}-slide carousel` : "Single image post";
 
-  const howTo = carousel
-    ? `<strong>Instagram:</strong> save the attached slides and post them as a carousel, in order.<br><strong>LinkedIn:</strong> add the attached PDF as a document${
-      pdfUrl ? ` (<a href="${pdfUrl}?download=${encodeURIComponent(names.pdf)}" style="color:#5B3FD0;">download</a>)` : ""
-    } — it shows as a swipeable carousel.`
+  const howTo = isVideo
+    ? `The video is attached (vertical, made for Reels, Shorts and TikTok). <a href="${videoUrl}?download=${encodeURIComponent(names.video)}" style="color:#5B3FD0;">Download it here</a> if your mail app doesn't show the attachment.`
+    : carousel
+    ? [
+      `Save the attached slides and post them as a carousel, in order.`,
+      pdfUrl
+        ? `<strong>LinkedIn:</strong> add the attached PDF as a document (<a href="${pdfUrl}?download=${
+          encodeURIComponent(names.pdf)
+        }" style="color:#5B3FD0;">download</a>) and it shows as a swipeable carousel.`
+        : "",
+    ].filter(Boolean).join("<br>")
     : `Save the attached image and post it with the captions below.`;
 
   const reminders = post.other_content?.trim()
@@ -125,6 +165,11 @@ export function postEmail(post: Post, workspace: Workspace, token: string) {
       paragraphs(post.other_content)
     }</td></tr></table></td></tr>`
     : "";
+
+  const captionRows = (workspace.platforms.length ? workspace.platforms : (Object.keys(post.captions) as Platform[]))
+    .filter((p) => post.captions[p])
+    .map((p) => captionCard(p, post.captions[p]!.caption, post.captions[p]!.hashtags))
+    .join("");
 
   const inner = `<tr><td style="background:#FFFFFF;border-radius:20px;border:1px solid #ECEAF2;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -138,18 +183,19 @@ export function postEmail(post: Post, workspace: Workspace, token: string) {
     esc(post.title)
   }</td></tr>
 <tr><td style="padding:0 24px 18px 24px;font-size:14px;line-height:22px;color:#5E5A68;">Today's post is ready to publish. The ${
-    carousel ? "slides are" : "image is"
+    isVideo ? "video is" : carousel ? "slides are" : "image is"
   } attached to this email and the captions are below.</td></tr>
 <tr><td style="padding:0 24px 22px 24px;">
   ${button(page, "Open post page", brandColor, "#FFFFFF")}
   ${button(`${page}?action=regenerate`, "Regenerate", "#FFFFFF", "#16141C", "#DDDAE6")}
 </td></tr>
-${slideGrid(post)}
+${isVideo && videoUrl ? videoBlock(post, brandColor, videoUrl) : slideGrid(post)}
 <tr><td style="padding:0 24px 18px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F6FB;border-radius:12px;"><tr><td style="padding:14px 16px;font-size:13px;line-height:21px;color:#3F3B4A;">${howTo}</td></tr></table></td></tr>
-${captionCard("LinkedIn", "#0A66C2", post.linkedin_caption, post.linkedin_hashtags)}
-${captionCard("Instagram", "#E1306C", post.instagram_caption, post.instagram_hashtags)}
+${captionRows}
 ${reminders}
-<tr><td style="padding:4px 24px 26px 24px;font-size:13px;color:#5E5A68;">On your phone? <a href="${page}" style="color:#5B3FD0;font-weight:700;">Open the post page</a> to copy each caption with one tap and save the slides.</td></tr>
+<tr><td style="padding:4px 24px 26px 24px;font-size:13px;color:#5E5A68;">On your phone? <a href="${page}" style="color:#5B3FD0;font-weight:700;">Open the post page</a> to copy each caption with one tap and save the ${
+    isVideo ? "video" : "slides"
+  }.</td></tr>
 </table></td></tr>`;
 
   const text = [
@@ -158,25 +204,23 @@ ${reminders}
     ``,
     `Post page (download & copy): ${page}`,
     `Regenerate: ${page}?action=regenerate`,
-    ``,
-    `LINKEDIN`,
-    post.linkedin_caption ?? "",
-    post.linkedin_hashtags.map((t) => `#${t}`).join(" "),
-    ``,
-    `INSTAGRAM`,
-    post.instagram_caption ?? "",
-    post.instagram_hashtags.map((t) => `#${t}`).join(" "),
+    ...(videoUrl ? [`Video: ${videoUrl}`] : []),
+    ...(Object.entries(post.captions) as [Platform, { caption: string; hashtags: string[] }][]).flatMap(([p, c]) => [
+      ``,
+      PLATFORM_NAMES[p].toUpperCase(),
+      c.caption,
+      c.hashtags.map((t) => `#${t}`).join(" "),
+    ]),
   ].join("\n");
 
-  const attachments: Attachment[] = post.image_paths.map((p, i) => ({
-    filename: names.slide(i),
-    path: publicUrl(MEDIA_BUCKET, p),
-  }));
-  if (pdfUrl) attachments.push({ filename: names.pdf, path: pdfUrl });
+  const attachments: Attachment[] = isVideo && videoUrl
+    ? [{ filename: names.video, path: videoUrl }]
+    : post.image_paths.map((p, i) => ({ filename: names.slide(i), path: publicUrl(MEDIA_BUCKET, p) }));
+  if (!isVideo && pdfUrl) attachments.push({ filename: names.pdf, path: pdfUrl });
 
   return {
     subject: `Ready to post: ${post.title}`,
-    html: shell(`${post.theme ?? "Today's post"} is ready — slides attached, captions inside.`, inner, brandColor),
+    html: shell(`${post.theme ?? "Today's post"} is ready. ${isVideo ? "Video" : "Slides"} attached, captions inside.`, inner, brandColor),
     text,
     attachments,
   };

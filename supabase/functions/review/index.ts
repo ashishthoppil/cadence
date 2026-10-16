@@ -10,6 +10,7 @@ import {
   type Workspace,
   workspaceFromRequest,
 } from "../_shared/db.ts";
+import { allowance, consumeFreePost } from "../_shared/billing.ts";
 import { sha256Hex } from "../_shared/crypto.ts";
 import { downloadNames } from "../_shared/email.ts";
 import { HttpError, json, runInBackground, serve } from "../_shared/http.ts";
@@ -55,12 +56,15 @@ function view(post: Post, w: Workspace) {
     format: post.format,
     status: post.status,
     images: post.image_paths.map((p) => publicUrl(MEDIA_BUCKET, p)),
+    video: post.video_path ? publicUrl(MEDIA_BUCKET, post.video_path) : null,
+    credits: [...new Set(post.slides.map((s) => s.image?.credit).filter(Boolean))],
     downloads: {
       slides: post.image_paths.map((p, i) => ({ name: names.slide(i), url: download(p, names.slide(i)) })),
       pdf: post.pdf_path ? { name: names.pdf, url: download(post.pdf_path, names.pdf) } : null,
+      video: post.video_path ? { name: names.video, url: download(post.video_path, names.video) } : null,
     },
-    linkedin: { caption: post.linkedin_caption, hashtags: post.linkedin_hashtags },
-    instagram: { caption: post.instagram_caption, hashtags: post.instagram_hashtags },
+    captions: post.captions,
+    platforms: w.platforms,
     alt_text: post.alt_text,
     error: post.error,
     replaced_by: post.replaced_by,
@@ -80,8 +84,18 @@ serve(async (req) => {
     case "regenerate": {
       if (post.status === "superseded") throw new HttpError(409, "A newer version already replaced this post.");
       if (post.status === "generating") throw new HttpError(409, "This post is still being generated.");
+      const allowed = await allowance(workspace, post.format);
+      if (!allowed.ok) throw new HttpError(402, allowed.reason!);
+      if (allowed.plan === "free" && !(await consumeFreePost(workspace))) {
+        throw new HttpError(402, "You've used your free posts. Choose a plan to keep going.");
+      }
       const feedback = typeof body.feedback === "string" ? body.feedback.slice(0, 1000) : null;
-      const next = await createPost(workspace, { date: post.post_date, origin: "regenerate", feedback });
+      const next = await createPost(workspace, {
+        date: post.post_date,
+        origin: "regenerate",
+        format: allowed.format,
+        feedback,
+      });
       if (!next) throw new HttpError(409, "Could not start a new version");
       post = await updatePost(post.id, { status: "superseded", replaced_by: next.id });
       runInBackground(runGeneration(next.id));

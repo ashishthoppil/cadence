@@ -1,31 +1,43 @@
 "use client";
 
-import { ArrowLeft, Check, MailPlus, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, Film, MailPlus, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SlideStrip, StatusBadge } from "@/components/post-bits";
-import { CaptionPanel, DownloadList } from "@/components/post-content";
+import { CaptionPanel, DownloadList, VideoPlayer } from "@/components/post-content";
 import { brandFromWorkspace, SlidePreview } from "@/components/slide-preview";
 import { useWorkspace } from "@/components/workspace-provider";
 import { Button, ButtonLink, Card, Textarea } from "@/components/ui";
 import { postDownloads, postImages, type ReviewAction, reviewPost, usePost } from "@/lib/posts";
+import { mediaUrl } from "@/lib/supabase/client";
 import type { Post } from "@/lib/types";
 import { formatDate, relativeTime } from "@/lib/utils";
 
 function GeneratingPanel({ post }: { post: Post }) {
-  const steps = [
-    { label: "Writing the copy", done: !!post.title },
-    { label: "Designing the slides", done: post.image_paths.length > 0 },
-    { label: "Emailing it to you", done: false },
-  ];
+  const video = post.format === "video";
+  const steps = video
+    ? [
+      { label: "Writing the script and captions", done: !!post.title },
+      { label: "Rendering the video (usually 1 to 5 minutes)", done: !!post.video_path },
+      { label: "Emailing it to you", done: false },
+    ]
+    : [
+      { label: "Writing the copy", done: !!post.title },
+      { label: "Designing the slides", done: post.image_paths.length > 0 },
+      { label: "Emailing it to you", done: false },
+    ];
   const brand = brandFromWorkspace(useWorkspace().workspace ?? {});
   return (
     <Card className="grid gap-8 p-6 md:grid-cols-[280px_1fr] md:p-8">
-      <div className="overflow-hidden rounded-xl border border-white/10">
+      <div className="overflow-hidden rounded-xl border border-tint/10">
         {post.slides?.[0] ? (
           <SlidePreview slide={post.slides[0]} total={post.slides.length} brand={brand} />
+        ) : video ? (
+          <div className="skeleton grid aspect-[4/5] place-items-center">
+            <Film className="size-8 text-ink-mute" />
+          </div>
         ) : (
           <div className="skeleton aspect-[4/5]" />
         )}
@@ -33,7 +45,9 @@ function GeneratingPanel({ post }: { post: Post }) {
       <div className="flex flex-col justify-center">
         <Sparkles className="size-6 animate-pulse text-brand-soft" />
         <h2 className="mt-4 text-xl font-semibold">Creating {post.theme ?? "your post"}…</h2>
-        <p className="mt-1 text-sm text-ink-mute">This usually takes under a minute. You can leave this page.</p>
+        <p className="mt-1 text-sm text-ink-mute">
+          {video ? "Videos take a few minutes." : "This usually takes under a minute."} You can leave this page; it lands in your inbox when it&apos;s ready.
+        </p>
         <ol className="mt-6 space-y-3">
           {steps.map((s, i) => {
             const active = !s.done && (i === 0 || steps[i - 1].done);
@@ -42,7 +56,7 @@ function GeneratingPanel({ post }: { post: Post }) {
                 <span
                   className={`grid size-6 place-items-center rounded-full border ${
                     s.done
-                      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-600 dark:text-emerald-300"
                       : active
                       ? "border-brand/50 text-brand-soft"
                       : "border-line text-ink-mute"
@@ -114,7 +128,7 @@ export function PostDetail() {
             )}
             {formatDate(post.post_date, { weekday: "long", day: "numeric", month: "long" })}
             <span>·</span>
-            {post.format === "carousel" ? `${post.slides?.length || "…"} slides` : "Single image"}
+            {post.format === "carousel" ? `${post.slides?.length || "…"} slides` : post.format === "video" ? "Short video" : "Single image"}
           </div>
           <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-tight md:text-3xl">
             {post.title ?? "Generating…"}
@@ -124,7 +138,7 @@ export function PostDetail() {
       </div>
 
       {post.status === "superseded" && post.replaced_by && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white/[0.03] px-5 py-3 text-sm">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-tint/[0.03] px-5 py-3 text-sm">
           A newer version of this post replaced it.
           <ButtonLink href={`/dashboard/posts/${post.replaced_by}`} size="sm" variant="secondary">
             Open new version
@@ -144,18 +158,22 @@ export function PostDetail() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div className="space-y-5">
-            <SlideStrip images={images} alt={post.alt_text} />
-            <DownloadList slides={downloads.slides} pdf={downloads.pdf} />
+            {post.video_path ? (
+              <VideoPlayer src={mediaUrl(post.video_path)} />
+            ) : (
+              <SlideStrip images={images} alt={post.alt_text} />
+            )}
+            <DownloadList
+              slides={downloads.slides}
+              pdf={downloads.pdf}
+              video={downloads.video}
+              credits={[...new Set((post.slides ?? []).map((sl) => sl.image?.credit).filter((c): c is string => !!c))]}
+            />
           </div>
 
           <div className="space-y-5">
             <Card className="p-5">
-              <CaptionPanel
-                value={{
-                  linkedin: { caption: post.linkedin_caption ?? "", hashtags: post.linkedin_hashtags ?? [] },
-                  instagram: { caption: post.instagram_caption ?? "", hashtags: post.instagram_hashtags ?? [] },
-                }}
-              />
+              <CaptionPanel captions={post.captions ?? {}} platforms={workspace?.platforms} />
             </Card>
 
             {canRegenerate && (
@@ -175,7 +193,7 @@ export function PostDetail() {
                   )}
                 </div>
                 {showFeedback && (
-                  <div className="space-y-3 rounded-xl border border-line bg-white/[0.02] p-4">
+                  <div className="space-y-3 rounded-xl border border-line bg-tint/[0.02] p-4">
                     <Textarea
                       className="min-h-20"
                       placeholder="What should change? e.g. “Make the hook punchier and focus on graduates.” (optional)"

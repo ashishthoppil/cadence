@@ -1,7 +1,12 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.2";
 import { env } from "./env.ts";
 import { HttpError } from "./http.ts";
-import type { Slide } from "./slide-templates.ts";
+import type { Slide, TemplateId } from "./slide-templates.ts";
+
+export type Platform = "linkedin" | "instagram" | "facebook" | "x" | "tiktok";
+export type BusinessType = "saas" | "ecommerce" | "services" | "creator" | "local" | "education" | "other";
+export type VisualSource = "none" | "uploads" | "stock";
+export type PostFormat = "carousel" | "image" | "video";
 
 export interface Workspace {
   id: string;
@@ -16,12 +21,13 @@ export interface Workspace {
   handle: string | null;
   language: string;
   avoid: string | null;
-  linkedin_hashtags: string[];
-  instagram_hashtags: string[];
+  business_type: BusinessType;
+  platforms: Platform[];
+  visual_source: VisualSource;
+  brand_hashtags: string[];
   primary_color: string;
   accent_color: string | null;
-  slide_theme: "midnight" | "paper" | "bold";
-  slide_font: "inter" | "jakarta" | "editorial";
+  template: TemplateId;
   logo_url: string | null;
   logo_aspect: number | null;
   logo_inverse_url: string | null;
@@ -33,12 +39,14 @@ export interface Workspace {
   paused: boolean;
   ai_model: string | null;
   onboarded_at: string | null;
+  free_posts_used: number;
+  upgrade_notified_at: string | null;
 }
 
 export interface CalendarSlot {
   workspace_id: string;
   weekday: number;
-  format: "carousel" | "image" | "none";
+  format: PostFormat | "none";
   theme: string;
   brief: string;
   other_content: string;
@@ -52,7 +60,7 @@ export interface Post {
   post_date: string;
   weekday: number;
   origin: "schedule" | "manual" | "regenerate";
-  format: "carousel" | "image";
+  format: PostFormat;
   theme: string | null;
   brief: string | null;
   other_content: string | null;
@@ -61,10 +69,11 @@ export interface Post {
   slides: Slide[];
   image_paths: string[];
   pdf_path: string | null;
-  linkedin_caption: string | null;
-  linkedin_hashtags: string[];
-  instagram_caption: string | null;
-  instagram_hashtags: string[];
+  captions: Captions;
+  video_path: string | null;
+  video_prompt: string | null;
+  video_job: string | null;
+  video_started_at: string | null;
   alt_text: string | null;
   feedback: string | null;
   model: string | null;
@@ -74,6 +83,32 @@ export interface Post {
   replaced_by: string | null;
   error: string | null;
   created_at: string;
+}
+
+export type Captions = Partial<Record<Platform, { caption: string; hashtags: string[] }>>;
+
+export interface MediaAsset {
+  id: string;
+  workspace_id: string;
+  path: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+  description: string | null;
+  use_count: number;
+  last_used_at: string | null;
+}
+
+export interface Subscription {
+  workspace_id: string;
+  plan: "image" | "video";
+  status: string;
+  subscription_id: string | null;
+  customer_id: string | null;
+  product_id: string | null;
+  currency: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
 }
 
 let client: SupabaseClient | null = null;
@@ -92,13 +127,19 @@ export function publicUrl(bucket: string, path: string): string {
 
 export const MEDIA_BUCKET = "post-media";
 
-/** Resolve the signed-in user's workspace from the request's bearer token. */
-export async function workspaceFromRequest(req: Request): Promise<Workspace> {
+/** Resolve the signed-in user from the request's bearer token. */
+export async function userFromRequest(req: Request) {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new HttpError(401, "Sign in required");
   const { data, error } = await admin().auth.getUser(token);
   if (error || !data.user) throw new HttpError(401, "Sign in required");
-  const { data: workspace } = await admin().from("workspaces").select("*").eq("owner_id", data.user.id).maybeSingle();
+  return data.user;
+}
+
+/** Resolve the signed-in user's workspace from the request's bearer token. */
+export async function workspaceFromRequest(req: Request): Promise<Workspace> {
+  const user = await userFromRequest(req);
+  const { data: workspace } = await admin().from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
   if (!workspace) throw new HttpError(404, "Finish onboarding first");
   return workspace as Workspace;
 }

@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { brandFromWorkspace, SlidePreview } from "@/components/slide-preview";
 import { Field, Input, Segmented, Spinner } from "@/components/ui";
-import { FONT_PAIRS, type FontPair, SAMPLE_SLIDES, type SlideTheme, THEMES } from "@/lib/slide-templates";
+import { SAMPLE_SLIDES, samplePhoto, type Slide, TEMPLATE_IDS, TEMPLATES } from "@/lib/slide-templates";
 import { BRAND_BUCKET, supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Draft } from "./brand-forms";
@@ -113,7 +113,7 @@ function LogoUpload({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="max-h-full max-w-full object-contain" />
           ) : (
-            <ImagePlus className={cn("size-5", dark ? "text-white/40" : "text-black/40")} />
+            <ImagePlus className={cn("size-5", dark ? "text-tint/40" : "text-black/40")} />
           )}
         </button>
         <div className="min-w-0 text-xs leading-relaxed text-ink-mute">
@@ -144,42 +144,73 @@ function LogoUpload({
   );
 }
 
+type Filter = "recommended" | "text" | "photo";
+
 export function LookForm({
   value,
   onChange,
   workspaceId,
+  photos = [],
 }: {
   value: Draft;
   onChange: (patch: Draft) => void;
   workspaceId?: string;
+  /** The brand's own photos, used in previews of photo templates. */
+  photos?: string[];
 }) {
   const brand = brandFromWorkspace(value);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const usesPhotos = (value.visual_source ?? "none") !== "none";
+  const [filter, setFilter] = useState<Filter>("recommended");
   const length = value.carousel_length ?? 7;
+  const current = value.template ?? "midnight";
+
+  const photoFor = (i: number) => photos[i % Math.max(photos.length, 1)] ?? samplePhoto(brand.primary, i);
+  const withPhoto = (slide: Slide, i: number): Slide => ({ ...slide, image: { url: photoFor(i) } });
+  const ids = TEMPLATE_IDS.filter((id) =>
+    filter === "text" ? TEMPLATES[id].kind === "text" : filter === "photo" ? TEMPLATES[id].kind === "photo" : true
+  ).sort((a, b) =>
+    filter === "recommended" ? Number(TEMPLATES[b].kind === (usesPhotos ? "photo" : "text")) - Number(TEMPLATES[a].kind === (usesPhotos ? "photo" : "text")) : 0
+  );
+  const isPhotoTemplate = TEMPLATES[current]?.kind === "photo";
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="space-y-7">
-        <div className="space-y-2">
-          <p className="text-[13px] font-medium text-ink-soft">Slide style</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {(Object.keys(THEMES) as SlideTheme[]).map((theme) => (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px] font-medium text-ink-soft">Template</p>
+            <Segmented<Filter>
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: "recommended", label: "Recommended" },
+                { value: "text", label: "Text-first" },
+                { value: "photo", label: "With photos" },
+              ]}
+            />
+          </div>
+          {isPhotoTemplate && !usesPhotos && (
+            <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3.5 py-2.5 text-xs text-amber-700 dark:text-amber-200">
+              Photo templates need photos. Choose &ldquo;My own photos&rdquo; or &ldquo;Stock photos&rdquo; in your business settings, or posts will use placeholder art.
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            {ids.map((id) => (
               <button
-                key={theme}
+                key={id}
                 type="button"
-                onClick={() => onChange({ slide_theme: theme })}
+                onClick={() => onChange({ template: id })}
                 className={cn(
-                  "group rounded-2xl border p-2 text-left transition",
-                  (value.slide_theme ?? "midnight") === theme
-                    ? "border-brand/60 bg-brand/10 ring-4 ring-brand/10"
-                    : "border-line hover:border-line-strong",
+                  "group rounded-2xl border p-1.5 text-left transition",
+                  current === id ? "border-brand/60 bg-brand/10 ring-4 ring-brand/10" : "border-line hover:border-line-strong",
                 )}
               >
                 <div className="overflow-hidden rounded-xl">
-                  <SlidePreview slide={SAMPLE_SLIDES[0]} total={length} brand={{ ...brand, theme }} />
+                  <SlidePreview slide={withPhoto(SAMPLE_SLIDES[0], 0)} total={length} brand={{ ...brand, template: id }} />
                 </div>
-                <p className="mt-2.5 px-1 text-sm font-medium">{THEMES[theme].label}</p>
-                <p className="px-1 pb-1 text-xs text-ink-mute">{THEMES[theme].description}</p>
+                <p className="mt-2 px-1 text-[13px] font-medium">{TEMPLATES[id].name}</p>
+                <p className="px-1 pb-1 text-[11px] leading-snug text-ink-mute">{TEMPLATES[id].description}</p>
               </button>
             ))}
           </div>
@@ -195,36 +226,17 @@ export function LookForm({
                 onClick={() => onChange({ primary_color: c })}
                 className={cn(
                   "size-7 rounded-full border-2 transition",
-                  value.primary_color?.toUpperCase() === c ? "border-white" : "border-transparent hover:scale-110",
+                  value.primary_color?.toUpperCase() === c ? "border-ink" : "border-transparent hover:scale-110",
                 )}
                 style={{ background: c }}
               />
             ))}
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            <ColorField
-              label="Brand colour"
-              value={value.primary_color}
-              onChange={(v) => onChange({ primary_color: v ?? "#6D28D9" })}
-            />
-            <ColorField
-              label="Highlight colour"
-              optional
-              value={value.accent_color}
-              onChange={(v) => onChange({ accent_color: v })}
-            />
+            <ColorField label="Brand colour" value={value.primary_color} onChange={(v) => onChange({ primary_color: v ?? "#6D28D9" })} />
+            <ColorField label="Highlight colour" optional value={value.accent_color} onChange={(v) => onChange({ accent_color: v })} />
           </div>
         </div>
-
-        <Field label="Typeface">
-          {() => (
-            <Segmented<FontPair>
-              value={value.slide_font ?? "inter"}
-              onChange={(slide_font) => onChange({ slide_font })}
-              options={(Object.keys(FONT_PAIRS) as FontPair[]).map((f) => ({ value: f, label: FONT_PAIRS[f].label }))}
-            />
-          )}
-        </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <LogoUpload
@@ -237,7 +249,7 @@ export function LookForm({
           />
           <LogoUpload
             label="Logo on dark"
-            hint="Optional white/light version used on dark slides."
+            hint="Optional white or light version for dark slides and photos."
             url={value.logo_inverse_url}
             dark
             workspaceId={workspaceId}
@@ -261,10 +273,10 @@ export function LookForm({
       </div>
 
       <div className="lg:sticky lg:top-6 lg:self-start">
-        <p className="mb-2 text-[13px] font-medium text-ink-soft">Live preview</p>
-        <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+        <p className="mb-2 text-[13px] font-medium text-ink-soft">Live preview · {TEMPLATES[current]?.name}</p>
+        <div className="overflow-hidden rounded-2xl border border-line shadow-2xl">
           <SlidePreview
-            slide={SAMPLE_SLIDES[previewIndex]}
+            slide={withPhoto(SAMPLE_SLIDES[previewIndex], previewIndex)}
             index={previewIndex === 2 ? length - 1 : previewIndex}
             total={length}
             brand={brand}

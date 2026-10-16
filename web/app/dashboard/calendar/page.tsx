@@ -9,7 +9,7 @@ import { SectionHeading } from "@/components/ui";
 import type { CalendarSlot } from "@/lib/types";
 
 export default function CalendarPage() {
-  const { slots, saveSlots } = useWorkspace();
+  const { slots, saveSlots, workspace, plan } = useWorkspace();
   const [draft, setDraft] = useState<CalendarSlot[]>(slots);
   const [saved, setSaved] = useState(slots);
   const [saving, setSaving] = useState(false);
@@ -38,7 +38,7 @@ export default function CalendarPage() {
         title="Weekly calendar"
         description="What Cadence creates each day. Changes apply from the next scheduled run."
       />
-      <CalendarEditor value={draft} onChange={setDraft} />
+      <CalendarEditor value={draft} onChange={setDraft} businessType={workspace?.business_type} videoAllowed={plan === "video"} />
       <SaveBar dirty={dirty} saving={saving} onSave={save} onReset={() => setDraft(slots)} />
     </div>
   );

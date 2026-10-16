@@ -12,7 +12,7 @@ export default function ReviewPage() {
   return (
     <div className="relative min-h-screen overflow-x-clip">
       <div className="pointer-events-none absolute top-0 left-1/2 h-[420px] w-[900px] -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgb(139_92_246/0.18),transparent_65%)]" />
-      <header className="relative border-b border-white/[0.06]">
+      <header className="relative border-b border-tint/[0.06]">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-6">
           <ReviewHeader />
         </div>

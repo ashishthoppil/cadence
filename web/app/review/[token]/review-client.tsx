@@ -8,7 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogoMark } from "@/components/logo";
 import { SlideStrip, StatusBadge } from "@/components/post-bits";
-import { CaptionPanel, DownloadList } from "@/components/post-content";
+import { CaptionPanel, DownloadList, VideoPlayer } from "@/components/post-content";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, Card, Spinner, Textarea } from "@/components/ui";
 import { invoke } from "@/lib/supabase/client";
 import type { ReviewView } from "@/lib/types";
@@ -21,7 +22,7 @@ function Centered({ icon, title, children }: { icon: React.ReactNode; title: str
       animate={{ opacity: 1, scale: 1 }}
       className="mx-auto max-w-md py-16 text-center"
     >
-      <div className="mx-auto grid size-14 place-items-center rounded-2xl border border-white/10 bg-white/[0.04]">{icon}</div>
+      <div className="mx-auto grid size-14 place-items-center rounded-2xl border border-tint/10 bg-tint/[0.04]">{icon}</div>
       <h1 className="mt-6 text-2xl font-semibold tracking-tight">{title}</h1>
       <div className="mt-2 text-sm leading-relaxed text-ink-mute">{children}</div>
     </motion.div>
@@ -118,17 +119,17 @@ export function ReviewClient() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="space-y-5">
-          <SlideStrip images={view.images} alt={view.alt_text} />
-          <DownloadList slides={view.downloads.slides} pdf={view.downloads.pdf} />
+          {view.video ? <VideoPlayer src={view.video} /> : <SlideStrip images={view.images} alt={view.alt_text} />}
+          <DownloadList
+            slides={view.downloads.slides}
+            pdf={view.downloads.pdf}
+            video={view.downloads.video}
+            credits={view.credits}
+          />
         </div>
         <div className="space-y-5">
           <Card className="p-5">
-            <CaptionPanel
-              value={{
-                linkedin: { caption: view.linkedin.caption ?? "", hashtags: view.linkedin.hashtags ?? [] },
-                instagram: { caption: view.instagram.caption ?? "", hashtags: view.instagram.hashtags ?? [] },
-              }}
-            />
+            <CaptionPanel captions={view.captions ?? {}} platforms={view.platforms} />
           </Card>
 
           {canRegenerate && (
@@ -167,10 +168,11 @@ export function ReviewClient() {
 
 export function ReviewHeader() {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex w-full items-center gap-2.5">
       <LogoMark className="size-6" />
       <span className="font-semibold tracking-tight">Cadence</span>
       <span className="text-ink-mute">/ Today&apos;s post</span>
+      <ThemeToggle className="ml-auto" />
     </div>
   );
 }

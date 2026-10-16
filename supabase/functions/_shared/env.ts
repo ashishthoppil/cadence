@@ -38,4 +38,35 @@ export const env = {
   get functionsUrl() {
     return `${required("SUPABASE_URL")}/functions/v1`;
   },
+
+  // Gemini — short videos
+  get geminiKey() {
+    return required("GEMINI_API_KEY");
+  },
+  get geminiVideoModel() {
+    return optional("GEMINI_VIDEO_MODEL", "gemini-omni-1.1-flash");
+  },
+
+  // Stock photos for brands without their own (optional). Pixabay is the default; Pexels
+  // still works for anyone who already has a key (new Pexels keys are paused).
+  get pixabayKey() {
+    return Deno.env.get("PIXABAY_API_KEY") ?? "";
+  },
+  get pexelsKey() {
+    return Deno.env.get("PEXELS_API_KEY") ?? "";
+  },
+
+  // Dodo Payments
+  get dodoKey() {
+    return required("DODO_API_KEY");
+  },
+  get dodoWebhookSecret() {
+    return required("DODO_WEBHOOK_SECRET");
+  },
+  get dodoBaseUrl() {
+    return optional("DODO_ENV", "test") === "live" ? "https://live.dodopayments.com" : "https://test.dodopayments.com";
+  },
+  dodoProduct(plan: "image" | "video", currency: "INR" | "USD") {
+    return required(`DODO_PRODUCT_${plan.toUpperCase()}_${currency}`);
+  },
 };

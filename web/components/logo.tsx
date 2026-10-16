@@ -18,11 +18,11 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ href = "/", className }: { href?: string; className?: string }) {
+export function Logo({ href = "/", className, wordClassName }: { href?: string; className?: string; wordClassName?: string }) {
   return (
-    <Link href={href} className={cn("flex items-center gap-2.5 font-semibold tracking-tight", className)}>
+    <Link href={href} aria-label="Cadence" className={cn("flex shrink-0 items-center gap-2.5 font-semibold tracking-tight", className)}>
       <LogoMark />
-      <span className="text-[17px]">Cadence</span>
+      <span className={cn("text-[17px]", wordClassName)}>Cadence</span>
     </Link>
   );
 }

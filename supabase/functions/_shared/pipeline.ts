@@ -1,19 +1,31 @@
-// Generation → rendering → delivery email.
+// Generation → rendering (or video) → delivery email.
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
-import { admin, getPost, getSlot, getWorkspace, MEDIA_BUCKET, type Post, updatePost, type Workspace } from "./db.ts";
+import {
+  admin,
+  getPost,
+  getSlot,
+  getWorkspace,
+  MEDIA_BUCKET,
+  type Post,
+  type PostFormat,
+  updatePost,
+  type Workspace,
+} from "./db.ts";
 import { generateContent } from "./openai.ts";
-import { isDarkTheme, type SlideBrand } from "./slide-templates.ts";
+import { logoOnDark, type SlideBrand } from "./slide-templates.ts";
 import { callFunction } from "./http.ts";
 import { randomToken, sha256Hex } from "./crypto.ts";
 import { noticeEmail, postEmail, sendEmail } from "./email.ts";
 import { env } from "./env.ts";
 import { weekdayOf } from "./time.ts";
+import { assetImage, assignVisuals, libraryFor } from "./visuals.ts";
+import { startVideo, type VideoOutput } from "./video.ts";
 
 /** How long the link in the email keeps working. */
 const LINK_TTL = 30 * 86_400_000;
 
 export function slideBrand(w: Workspace): SlideBrand {
-  const dark = isDarkTheme({ theme: w.slide_theme, primary: w.primary_color });
+  const dark = logoOnDark({ template: w.template, primary: w.primary_color, accent: w.accent_color });
   const normal = w.logo_url ? { url: w.logo_url, aspect: w.logo_aspect || 1 } : null;
   const inverse = w.logo_inverse_url ? { url: w.logo_inverse_url, aspect: w.logo_inverse_aspect || 1 } : null;
   return {
@@ -21,8 +33,7 @@ export function slideBrand(w: Workspace): SlideBrand {
     handle: w.handle,
     primary: w.primary_color,
     accent: w.accent_color,
-    theme: w.slide_theme,
-    font: w.slide_font,
+    template: w.template,
     logo: dark ? inverse ?? normal : normal,
     cta: w.cta,
   };
@@ -31,9 +42,15 @@ export function slideBrand(w: Workspace): SlideBrand {
 // ---------------------------------------------------------------------------
 // Creating & generating posts
 
+/** The format a day's slot asks for (rest days fall back to a carousel for manual runs). */
+export async function slotFormat(w: Workspace, date: string): Promise<PostFormat> {
+  const slot = await getSlot(w.id, weekdayOf(date));
+  return slot?.format && slot.format !== "none" ? slot.format : "carousel";
+}
+
 export async function createPost(
   w: Workspace,
-  opts: { date: string; origin: Post["origin"]; feedback?: string | null },
+  opts: { date: string; origin: Post["origin"]; format: PostFormat; feedback?: string | null },
 ): Promise<Post | null> {
   const weekday = weekdayOf(opts.date);
   const slot = await getSlot(w.id, weekday);
@@ -44,7 +61,7 @@ export async function createPost(
       post_date: opts.date,
       weekday,
       origin: opts.origin,
-      format: slot?.format === "image" ? "image" : "carousel",
+      format: opts.format,
       theme: slot?.theme || null,
       brief: slot?.brief || null,
       other_content: slot?.other_content || null,
@@ -127,52 +144,79 @@ export async function sendPostEmail(postId: string) {
   await updatePost(post.id, { emailed_at: new Date().toISOString(), error: null });
 }
 
+async function deliver(postId: string) {
+  // The post is ready even if the email bounces; the dashboard can resend it.
+  try {
+    await sendPostEmail(postId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Post email failed", postId, message);
+    await updatePost(postId, { error: `Email failed: ${message}` });
+  }
+}
+
+export async function failPost(post: Post, w: Workspace, message: string) {
+  console.error("Generation failed", post.id, message);
+  await updatePost(post.id, { status: "failed", error: message });
+  if (w.approval_email) {
+    const email = noticeEmail(
+      w,
+      "Today's post couldn't be generated",
+      `Something went wrong while creating "${post.theme ?? "today's post"}":\n${message}\n\nYou can try again from the dashboard.`,
+      { href: `${env.siteUrl}/dashboard/posts/${post.id}`, label: "Open dashboard" },
+    );
+    await sendEmail(w.approval_email, email.subject, email.html, email.text).catch(console.error);
+  }
+}
+
+/** Store a finished video and send the post. */
+export async function finishVideo(postId: string, video: VideoOutput) {
+  const post = await getPost(postId);
+  const path = `${post.workspace_id}/${post.id}/video.mp4`;
+  const { error } = await admin().storage.from(MEDIA_BUCKET).upload(path, video.bytes, {
+    contentType: video.mimeType || "video/mp4",
+    upsert: true,
+  });
+  if (error) throw error;
+  await updatePost(post.id, { video_path: path, video_job: null, status: "ready", error: null });
+  await deliver(post.id);
+}
+
 export async function runGeneration(postId: string) {
   let post = await getPost(postId);
   const w = await getWorkspace(post.workspace_id);
   try {
+    const assets = await libraryFor(w);
     const content = await generateContent(
       w,
-      { format: post.format, theme: post.theme ?? "", brief: post.brief ?? "", weekday: post.weekday },
+      { theme: post.theme ?? "", brief: post.brief ?? "", weekday: post.weekday },
+      post.format,
+      assets,
       await recentTitles(w, post.id),
       post.feedback,
     );
-    post = await updatePost(post.id, {
-      title: content.title,
-      slides: content.slides,
-      linkedin_caption: content.linkedin.caption,
-      linkedin_hashtags: content.linkedin.hashtags,
-      instagram_caption: content.instagram.caption,
-      instagram_hashtags: content.instagram.hashtags,
-      alt_text: content.alt_text,
-      model: content.model,
-    });
+    const shared = { title: content.title, captions: content.captions, alt_text: content.alt_text, model: content.model };
 
+    if (post.format === "video" && content.video) {
+      post = await updatePost(post.id, { ...shared, video_prompt: content.video.prompt });
+      const image = await assetImage(assets, content.video.asset_id);
+      const state = await startVideo(content.video.prompt, image);
+      if (state.status === "failed") throw new Error(state.error);
+      if (state.status === "done") return await finishVideo(post.id, state.video);
+      // Still rendering: the video-poller function picks it up from here.
+      await updatePost(post.id, { video_job: state.id, video_started_at: new Date().toISOString() });
+      return;
+    }
+
+    const slides = await assignVisuals(w, content.slides, assets, content.title);
+    post = await updatePost(post.id, { ...shared, slides });
     const paths = await renderSlides(post, w);
-    const pdfPath = paths.length > 1 ? await buildPdf(post, paths, w) : null;
+    // LinkedIn only shows multi-page posts as a swipeable document, so the PDF is just for LinkedIn users.
+    const pdfPath = paths.length > 1 && w.platforms.includes("linkedin") ? await buildPdf(post, paths, w) : null;
     await updatePost(post.id, { image_paths: paths, pdf_path: pdfPath, status: "ready", error: null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("Generation failed", post.id, message);
-    await updatePost(post.id, { status: "failed", error: message });
-    if (w.approval_email) {
-      const email = noticeEmail(
-        w,
-        "Today's post couldn't be generated",
-        `Something went wrong while creating "${post.theme ?? "today's post"}":\n${message}\n\nYou can try again from the dashboard.`,
-        { href: `${env.siteUrl}/dashboard/posts/${post.id}`, label: "Open dashboard" },
-      );
-      await sendEmail(w.approval_email, email.subject, email.html, email.text).catch(console.error);
-    }
+    await failPost(post, w, err instanceof Error ? err.message : String(err));
     return;
   }
-
-  // The post is ready even if the email bounces; the dashboard can resend it.
-  try {
-    await sendPostEmail(post.id);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("Post email failed", post.id, message);
-    await updatePost(post.id, { error: `Email failed: ${message}` });
-  }
+  await deliver(post.id);
 }

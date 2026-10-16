@@ -2,89 +2,93 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  FileStack,
+  Film,
   Hash,
+  LayoutTemplate,
   MailCheck,
-  Palette,
   RefreshCw,
   Send,
   Sparkles,
   Wand2,
 } from "lucide-react";
-import { HeroVisual, ThemeShowcase } from "@/components/landing/hero-visual";
+import { AudienceShowcase, HeroVisual, TemplateShowcase } from "@/components/landing/hero-visual";
 import { Reveal } from "@/components/landing/reveal";
 import { Logo } from "@/components/logo";
+import { PlanPicker } from "@/components/plan-picker";
 import { PlatformIcon } from "@/components/post-bits";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ButtonLink } from "@/components/ui";
+import { FREE_POSTS } from "@/lib/plans";
+import { PLATFORMS } from "@/lib/presets";
 
 const steps = [
   {
-    time: "5:00 PM",
+    time: "Once",
     icon: CalendarDays,
-    title: "Reads today's slot",
-    body: "Monday is resume advice, Tuesday a job-search hack — Cadence picks up the pillar and brief you planned.",
+    title: "Plan your week",
+    body: "Tell Cadence about your business and pick a pillar and format for each day: carousel, image or video.",
   },
   {
-    time: "5:01 PM",
+    time: "5:00 PM",
     icon: Wand2,
-    title: "Writes & designs",
-    body: "OpenAI drafts a fresh carousel or image post, then it's rendered on-brand at 1080×1350.",
+    title: "We write and design",
+    body: "A fresh post written from your brief, checked line by line by an AI editor, and designed in your template.",
   },
   {
     time: "5:02 PM",
     icon: MailCheck,
-    title: "Lands in your inbox",
-    body: "Slides attached, plus a LinkedIn caption and an Instagram caption — each with SEO keywords and hashtags.",
+    title: "It lands in your inbox",
+    body: "Slides or video attached, with a caption and hashtags written for each platform you use.",
   },
   {
     time: "Your call",
     icon: Send,
     title: "Post in a minute",
-    body: "Save the slides, copy each caption with one tap, and post. Not quite right? Regenerate it with feedback.",
+    body: "Save, copy, post. Not quite right? Regenerate it with one line of feedback.",
   },
 ];
 
 const faqs = [
   {
-    q: "Does it post for me?",
-    a: "Not yet — Cadence does the writing and designing, and you stay in control of what goes out. Every evening the finished post lands in your inbox, ready to upload to LinkedIn and Instagram.",
+    q: "Does Cadence post for me?",
+    a: "Not yet. Cadence writes and designs the post, then emails it to you ready to publish, so nothing goes out without you. Uploading takes about a minute.",
   },
   {
-    q: "What's in the email?",
-    a: "The slides as attachments, a PDF of the carousel for LinkedIn, a LinkedIn caption and an Instagram caption with hashtags, and a link to a page where you can copy each caption with one tap.",
+    q: "Which platforms does it write for?",
+    a: "LinkedIn, Instagram, Facebook, X and TikTok. Pick the ones you use and every post comes with a caption and hashtags tailored to each.",
   },
   {
-    q: "How are the images made?",
-    a: "Text comes from OpenAI; the slides are rendered from crisp, on-brand templates (your colours, logo, font and handle). No garbled AI text in images.",
+    q: "I sell physical products. Will it work for me?",
+    a: "Yes. Upload your product photos and Cadence designs posts and short videos around them. No photos yet? Use stock photos, or text-first designs.",
   },
   {
-    q: "How do I post a carousel on LinkedIn?",
-    a: "Add the PDF from the email as a document when you create the post. LinkedIn shows it as a swipeable carousel — the format that gets the most reach for educational content.",
+    q: "How good is the writing?",
+    a: "Every post goes through two passes: a writer drafts it from your brief, then an editor checks each sentence for clarity, grammar and house style. No invented facts, no filler, no em dashes.",
   },
   {
-    q: "Can I change the time or skip a day?",
-    a: "Yes. Pick any time in your own timezone, mark days as rest days, or pause the schedule whenever you like.",
+    q: "How are the videos made?",
+    a: "On the Image + Videos plan, Cadence writes a detailed shot-by-shot brief and Google's Gemini turns it into a short vertical video, ready for Reels, Shorts and TikTok.",
+  },
+  {
+    q: "What does it cost?",
+    a: `Your first ${FREE_POSTS} posts are free, no card needed. After that, Image Only is ₹1,499 or $45 a month and Image + Videos is ₹2,999 or $89 a month. Cancel any time.`,
   },
 ];
 
 export default function Home() {
   return (
     <div className="relative overflow-x-clip">
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-canvas/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-tint/[0.06] bg-canvas/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-8 text-sm text-ink-mute md:flex">
-            <a href="#how" className="transition hover:text-ink">
-              How it works
-            </a>
-            <a href="#features" className="transition hover:text-ink">
-              Features
-            </a>
-            <a href="#faq" className="transition hover:text-ink">
-              FAQ
-            </a>
+            <a href="#how" className="transition hover:text-ink">How it works</a>
+            <a href="#templates" className="transition hover:text-ink">Templates</a>
+            <a href="#pricing" className="transition hover:text-ink">Pricing</a>
+            <a href="#faq" className="transition hover:text-ink">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <ButtonLink href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
               Sign in
             </ButtonLink>
@@ -101,62 +105,70 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-24 text-center sm:px-6 md:pt-28">
           <div className="animate-fade-up">
             <a
-              href="#how"
-              className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pr-3 pl-1 text-[13px] text-ink-soft backdrop-blur transition hover:border-white/20"
+              href="#pricing"
+              className="mx-auto inline-flex items-center gap-2 rounded-full border border-tint/10 bg-tint/[0.04] py-1 pr-3 pl-1 text-[13px] text-ink-soft backdrop-blur transition hover:border-tint/20"
             >
               <span className="rounded-full bg-brand/20 px-2 py-0.5 text-xs font-semibold text-brand-soft">New</span>
-              Daily carousels for LinkedIn &amp; Instagram
+              Short videos for Reels, Shorts and TikTok
               <ArrowRight className="size-3.5" />
             </a>
           </div>
           <div className="animate-fade-up" style={{ animationDelay: "90ms" }}>
             <h1 className="mx-auto mt-7 max-w-4xl text-5xl leading-[1.02] font-semibold tracking-[-0.04em] sm:text-6xl md:text-7xl">
-              <span className="text-gradient">Your content calendar,</span>
+              <span className="text-gradient">Your social media,</span>
               <br />
-              <span className="text-gradient">posted on cadence.</span>
+              <span className="text-gradient">written and designed daily.</span>
             </h1>
           </div>
           <div className="animate-fade-up" style={{ animationDelay: "140ms" }}>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
-              Every evening Cadence writes and designs a post from your weekly plan and emails it to you — slides
-              attached, SEO-ready captions for LinkedIn and Instagram inside. All that&apos;s left is to hit post.
+              Cadence turns your weekly content plan into finished carousels, images and short videos, with captions
+              for every platform, and emails them to you ready to post.
             </p>
           </div>
           <div className="animate-fade-up" style={{ animationDelay: "190ms" }}>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <ButtonLink href="/login?mode=signup" size="lg">
-                Set up my autopilot <ArrowRight className="size-4" />
+                Start with {FREE_POSTS} free posts <ArrowRight className="size-4" />
               </ButtonLink>
-              <ButtonLink href="#how" size="lg" variant="secondary">
-                See how it works
+              <ButtonLink href="#pricing" size="lg" variant="secondary">
+                See pricing
               </ButtonLink>
             </div>
-            <p className="mt-4 text-xs text-ink-mute">Takes about 5 minutes · Nothing goes out without you</p>
+            <p className="mt-4 text-xs text-ink-mute">No card needed · Set up in about 5 minutes</p>
           </div>
 
           <div className="mt-16 md:mt-20">
             <HeroVisual />
           </div>
+
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-ink-mute">
+            <span>Captions written for</span>
+            {PLATFORMS.map((p) => (
+              <span key={p.id} className="flex items-center gap-2 text-ink-soft">
+                <PlatformIcon provider={p.id} /> {p.label}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section id="how" className="relative scroll-mt-20 border-t border-white/[0.06] py-24">
+      <section id="how" className="relative scroll-mt-20 border-t border-tint/[0.06] py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal className="max-w-2xl">
             <p className="text-sm font-semibold text-brand-soft">How it works</p>
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight">From plan to ready-to-post, before dinner.</h2>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight">From plan to ready-to-post, every day.</h2>
             <p className="mt-4 text-ink-soft">
-              Tell Cadence about your brand and your weekly content pillars once. After that, your only job is to
-              click a button.
+              Set it up once. After that, a finished post arrives in your inbox at the time you choose.
             </p>
           </Reveal>
           <div className="mt-14 grid gap-4 md:grid-cols-4">
             {steps.map((s, i) => (
               <Reveal key={s.title} delay={i * 0.07}>
-                <div className="group relative h-full rounded-2xl border border-line bg-panel/60 p-6 transition hover:border-white/15 hover:bg-panel">
+                <div className="group relative h-full rounded-2xl border border-line bg-panel/60 p-6 transition hover:border-line-strong hover:bg-panel">
                   <div className="flex items-center justify-between">
-                    <div className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
+                    <div className="grid size-10 place-items-center rounded-xl border border-tint/10 bg-tint/[0.04]">
                       <s.icon className="size-5 text-brand-soft" />
                     </div>
                     <span className="font-mono text-xs text-ink-mute">{s.time}</span>
@@ -164,7 +176,7 @@ export default function Home() {
                   <h3 className="mt-6 font-semibold">{s.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-ink-mute">{s.body}</p>
                   {i < steps.length - 1 && (
-                    <ArrowRight className="absolute top-1/2 -right-3.5 z-10 hidden size-5 -translate-y-1/2 text-white/20 md:block" />
+                    <ArrowRight className="absolute top-1/2 -right-3.5 z-10 hidden size-5 -translate-y-1/2 text-tint/20 md:block" />
                   )}
                 </div>
               </Reveal>
@@ -173,130 +185,86 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="scroll-mt-20 border-t border-white/[0.06] py-24">
+      {/* Made for your business */}
+      <section className="border-t border-tint/[0.06] py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold text-brand-soft">Features</p>
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight">Everything a content team does. Daily.</h2>
-          </Reveal>
-
-          <div className="mt-14 grid gap-4 md:grid-cols-6">
-            <Reveal className="md:col-span-4">
-              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
-                <CalendarDays className="size-5 text-brand-soft" />
-                <h3 className="mt-4 text-lg font-semibold">Built around your weekly calendar</h3>
-                <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-mute">
-                  Set a pillar, format and brief for each day — carousel, single image or rest day. Cadence remembers
-                  what it posted recently so it never repeats itself.
-                </p>
-                <div className="mt-6 grid grid-cols-7 gap-1.5 text-center text-[11px]">
-                  {[
-                    ["Mon", "Resume", "Carousel"],
-                    ["Tue", "Job hack", "Image"],
-                    ["Wed", "Educate", "Carousel"],
-                    ["Thu", "Interview", "Carousel"],
-                    ["Fri", "Remote", "Carousel"],
-                    ["Sat", "Career", "Image"],
-                    ["Sun", "Rest", "—"],
-                  ].map(([d, t, f]) => (
-                    <div
-                      key={d}
-                      className={`rounded-lg border p-2 ${f === "—" ? "border-dashed border-white/10 text-ink-mute" : "border-white/10 bg-white/[0.03]"}`}
-                    >
-                      <div className="font-semibold text-ink-soft">{d}</div>
-                      <div className="mt-1 truncate text-ink-mute">{t}</div>
-                      <div className={`mt-1.5 truncate rounded px-1 py-0.5 ${f === "Carousel" ? "bg-brand/15 text-brand-soft" : f === "Image" ? "bg-sky-500/10 text-sky-300" : ""}`}>
-                        {f}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-            <Reveal className="md:col-span-2" delay={0.05}>
-              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
-                <MailCheck className="size-5 text-brand-soft" />
-                <h3 className="mt-4 text-lg font-semibold">Ready in your inbox</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-mute">
-                  Slides attached, captions inside. Open the post page on your phone to save the slides and copy each
-                  caption in one tap.
-                </p>
-                <div className="mt-6 space-y-2">
-                  {["Open post page", "Copy caption", "Regenerate"].map((label, i) => (
-                    <div
-                      key={label}
-                      className={`rounded-lg px-3 py-2 text-center text-[13px] font-medium ${i === 0 ? "bg-brand text-white" : "border border-line text-ink-soft"}`}
-                    >
-                      {label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-            <Reveal className="md:col-span-2">
-              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
-                <Hash className="size-5 text-brand-soft" />
-                <h3 className="mt-4 text-lg font-semibold">SEO captions, per platform</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-mute">
-                  A hook under LinkedIn&apos;s “see more” cut, keyword-rich Instagram captions, and hashtag sets sized
-                  for each network.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal className="md:col-span-2" delay={0.05}>
-              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
-                <FileStack className="size-5 text-brand-soft" />
-                <h3 className="mt-4 text-lg font-semibold">Carousels for both</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-mute">
-                  Every carousel comes as numbered slides for Instagram and a PDF that LinkedIn shows as a swipeable
-                  document — up to 10 slides.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal className="md:col-span-2" delay={0.1}>
-              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
-                <RefreshCw className="size-5 text-brand-soft" />
-                <h3 className="mt-4 text-lg font-semibold">Regenerate with feedback</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-mute">
-                  “Make it punchier” or “focus on graduates” — tell it what to change and a new version lands in your
-                  inbox a minute later.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* Themes */}
-      <section className="border-t border-white/[0.06] py-24">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <Palette className="mx-auto size-5 text-brand-soft" />
-            <h2 className="mt-4 text-4xl font-semibold tracking-tight">Looks like your brand. Every single day.</h2>
+            <p className="text-sm font-semibold text-brand-soft">Made for your business</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight">Text-first or product-first. Your call.</h2>
             <p className="mt-4 text-ink-soft">
-              Three slide systems, your colours, your logo and your handle — previewed live while you set it up.
+              Tell us what you run and Cadence adapts: educational carousels for a software brand, product-led posts and
+              videos for a skincare line.
             </p>
           </Reveal>
           <Reveal delay={0.1} className="mt-14">
-            <ThemeShowcase />
+            <AudienceShowcase />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="border-t border-tint/[0.06] py-24">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 sm:px-6 md:grid-cols-3">
+          {[
+            { icon: LayoutTemplate, title: "20 on-brand templates", body: "Dark, light, editorial, playful and photo-led designs, in your colours with your logo." },
+            { icon: Hash, title: "Captions per platform", body: "A hook before LinkedIn's \"see more\", searchable Instagram captions, 280-character X posts, and the right hashtags for each." },
+            { icon: Sparkles, title: "Writing that makes sense", body: "A writer drafts, an editor checks every sentence. Plain words, real specifics, no invented facts." },
+            { icon: Film, title: "Short videos", body: "Vertical 8-second videos for Reels, Shorts and TikTok, made by Gemini from a detailed shot plan." },
+            { icon: RefreshCw, title: "Regenerate with feedback", body: "“Make it punchier” or “focus on beginners”. A new version lands in your inbox a minute later." },
+            { icon: MailCheck, title: "Ready to post", body: "Slides, a LinkedIn PDF carousel or a video, attached to the email with one-tap copy on your phone." },
+          ].map((f, i) => (
+            <Reveal key={f.title} delay={(i % 3) * 0.05}>
+              <div className="h-full rounded-2xl border border-line bg-panel/60 p-7">
+                <f.icon className="size-5 text-brand-soft" />
+                <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-mute">{f.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Templates */}
+      <section id="templates" className="scroll-mt-20 border-t border-tint/[0.06] py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold text-brand-soft">Templates</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight">Looks like your brand. Every single day.</h2>
+            <p className="mt-4 text-ink-soft">Twenty slide designs, previewed live in your colours while you set up.</p>
+          </Reveal>
+          <Reveal delay={0.1} className="mt-12">
+            <TemplateShowcase />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="scroll-mt-20 border-t border-tint/[0.06] py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <Reveal className="mx-auto mb-12 max-w-2xl text-center">
+            <p className="text-sm font-semibold text-brand-soft">Pricing</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight">Simple plans. Start free.</h2>
+            <p className="mt-4 text-ink-soft">Your first {FREE_POSTS} posts are on us. Upgrade when you&apos;re happy with them.</p>
+          </Reveal>
+          <Reveal delay={0.05}>
+            <PlanPicker mode="marketing" />
           </Reveal>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="scroll-mt-20 border-t border-white/[0.06] py-24">
+      <section id="faq" className="scroll-mt-20 border-t border-tint/[0.06] py-24">
         <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 md:grid-cols-[1fr_1.6fr]">
           <Reveal>
             <p className="text-sm font-semibold text-brand-soft">FAQ</p>
             <h2 className="mt-3 text-4xl font-semibold tracking-tight">Questions, answered.</h2>
           </Reveal>
-          <div className="divide-y divide-white/[0.06] border-y border-white/[0.06]">
+          <div className="divide-y divide-tint/[0.06] border-y border-tint/[0.06]">
             {faqs.map((f) => (
               <details key={f.q} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-medium">
                   {f.q}
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full border border-white/10 text-ink-mute transition group-open:rotate-45">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full border border-tint/10 text-ink-mute transition group-open:rotate-45">
                     +
                   </span>
                 </summary>
@@ -310,17 +278,17 @@ export default function Home() {
       {/* CTA */}
       <section className="px-4 pb-24 sm:px-6">
         <Reveal>
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#1a1430] to-panel px-6 py-16 text-center md:py-20">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgb(139_92_246/0.35),transparent_60%)]" />
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-tint/10 bg-gradient-to-b from-brand/15 to-panel px-6 py-16 text-center md:py-20">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgb(139_92_246/0.3),transparent_60%)]" />
             <div className="relative">
               <Sparkles className="mx-auto size-6 text-brand-soft" />
               <h2 className="mx-auto mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
-                Tomorrow at 5 PM, your post writes itself.
+                Tomorrow at 5 PM, your post is ready.
               </h2>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-5 text-sm text-ink-soft">
-                {["Slides + captions daily", "LinkedIn + Instagram", "Your brand, your voice"].map((t) => (
+                {[`${FREE_POSTS} free posts`, "No card needed", "Cancel any time"].map((t) => (
                   <span key={t} className="flex items-center gap-1.5">
-                    <CheckCircle2 className="size-4 text-emerald-400" /> {t}
+                    <CheckCircle2 className="size-4 text-emerald-500" /> {t}
                   </span>
                 ))}
               </div>
@@ -332,14 +300,10 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <footer className="border-t border-white/[0.06]">
+      <footer className="border-t border-tint/[0.06]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-mute sm:px-6">
           <Logo />
-          <div className="flex items-center gap-3">
-            <PlatformIcon provider="linkedin" />
-            <PlatformIcon provider="instagram" />
-            <span>Built on Supabase, OpenAI &amp; Resend</span>
-          </div>
+          <span>Cadence · Social media, on schedule.</span>
         </div>
       </footer>
     </div>
